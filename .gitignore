@@ -1,0 +1,11 @@
+# Logs
+*.log
+logs/
+
+# Build
+target/
+build/
+out/
+
+# Temp
+tmp/
