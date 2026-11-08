@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check bash syntax
+        run: |
+          FAILED=0
+            for f in *.sh; do
+              if [ -f "$f" ]; then
+                echo "Проверка синтаксиса: $f"
+                if ! bash -n "$f"; then
+                  echo "Синтаксическая ошибка в $f" >&2
+                  FAILED=1
+                fi
+              fi
+            done
+            if [ "$FAILED" -ne 0 ]; then
+              exit 1
+            fi
+      
+      - name: Test check_api
+        run: |
+          chmod +x check_api.sh
+          set +e
+          ./check_api.sh https://httpbin.org/status/200
+          CODE=$?
+          set -e
+          echo "Код возврата: $CODE"
+          if [ "$CODE" -ne 0 ]; then
+            echo "Ожидался код 0, получен $CODE" >&2
+            exit 1
+          fi
