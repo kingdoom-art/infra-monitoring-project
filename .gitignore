@@ -6,6 +6,7 @@ logs/
 target/
 build/
 out/
+*.conf
 
 # Temp
 tmp/
