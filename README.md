@@ -1,14 +1,62 @@
-# Итоговое домашнее задание #
+## Деплой на удалённый сервер по SSH/SCP
 
-**Форма проверки:** задание с проверкой преподавателем.\
-**Цели задания:** Закрепить навыки написания Bash-скриптов, анализа сетевого трафика, работы с Git, настройки CI/CD и контейнеризации готовых сервисов.\
-**Правила приёма работы:**
-* В форму ответа на платформе прикрепите две ссылки:
-    * Ссылка на публичный репозиторий GitHub
-    * Ссылка на отчёт (word или PDF) со скриншотами и дампом трафика\
-* В отчёте обязательно должны быть:
-    * Скриншот Wireshark с отфильтрованным HTTP-трафиком
-    * Вывод работы analyze_logs.sh в терминале
-    * Скриншот работающих контейнеров (docker-compose ps)
-    * Скриншот успешного CI/CD пайплайна в GitHub
-    * Пример работы check_api.sh с валидным и невалидным URL.
+Описание безопасной передачи файлов проекта на удаленных сервер 
+с исспользованием пары ssh-ключей (публичный и приватный).
+
+
+### 1. Генерация SSH-ключей
+
+```bash
+ssh-keygen -t ed25519 -C "deploy@infra-monitoring" -f ~/.ssh/id_ed25519_infra
+```
+
+### 2. Копирование публичного ключа на сервер
+
+```bash
+ssh-copy-id -i ~/.ssh/id_ed25519_infra.pub user@server.example.com
+```
+
+#### Вход по ключу проверяется так
+
+```bash
+ssh -i ~/.ssh/id_ed25519_infra user@server.example.com
+```
+
+### 3. Передача архива проекта scp
+
+#### Архивируем проект, исключая лишнее
+```bash
+tar -czf infra-monitoring.tar.gz \
+    --exclude='.git' \
+    --exclude='*.log' \
+    .
+```
+
+#### Копируем архив на сервер
+```bash
+scp -i ~/.ssh/id_ed25519_infra infra-monitoring.tar.gz \
+    user@server.example.com:/opt/deploy/
+```
+
+#### На сервере распаковываем
+```bash
+ssh -i ~/.ssh/id_ed25519_infra user@server.example.com \
+    "cd /opt/deploy && tar -xzf infra-monitoring.tar.gz"
+```
+
+### 4. Пример полного деплоя
+
+```bash
+# собираем проект в архив и отправляем на сервер с последующей распаковкой
+tar -czf - --exclude='.git' --exclude='*.log' --exclude='access.log' . \
+  | ssh -i ~/.ssh/id_ed25519_infra user@server.example.com \
+      "mkdir -p /opt/infra-monitoring && tar -xzf - -C /opt/infra-monitoring"
+
+# поднимаем контейнеры на сервере
+ssh -i ~/.ssh/id_ed25519_infra user@server.example.com \
+    "cd /opt/infra-monitoring && docker compose up -d"
+
+# проверка работы сервиса
+ssh -i ~/.ssh/id_ed25519_infra user@server.example.com \
+    "curl -s http://localhost:80"
+```
