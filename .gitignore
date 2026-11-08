@@ -1,0 +1,12 @@
+# Logs
+*.log
+logs/
+
+# Build
+target/
+build/
+out/
+*.conf
+
+# Temp
+tmp/
